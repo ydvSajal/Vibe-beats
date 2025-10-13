@@ -1,0 +1,62 @@
+{
+  "name": "TuneMatch - Music Discovery for Bennett University",
+  "short_name": "TuneMatch",
+  "description": "Find your music soulmate at Bennett University. Swipe, match, and connect with people who share your music taste.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FF1744",
+  "theme_color": "#FF1744",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/72x72/A855F7/FFFFFF?text=TM",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/96x96/A855F7/FFFFFF?text=TM",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/128x128/A855F7/FFFFFF?text=TM",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/144x144/A855F7/FFFFFF?text=TM",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/152x152/A855F7/FFFFFF?text=TM",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/192x192/A855F7/FFFFFF?text=TM",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://via.placeholder.com/384x384/A855F7/FFFFFF?text=TM",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/A855F7/FFFFFF?text=TM",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "music", "entertainment"]
+}

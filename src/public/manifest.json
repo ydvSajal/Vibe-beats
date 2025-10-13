@@ -1,0 +1,126 @@
+{
+  "name": "TuneMatch - Music Discovery for Bennett University",
+  "short_name": "TuneMatch",
+  "description": "Find your music soulmate at Bennett University. Swipe, match, and connect with people who share your music taste.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FF1744",
+  "theme_color": "#FF1744",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/72x72/A855F7/FFFFFF?text=TM",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/96x96/A855F7/FFFFFF?text=TM",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/128x128/A855F7/FFFFFF?text=TM",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/144x144/A855F7/FFFFFF?text=TM",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/152x152/A855F7/FFFFFF?text=TM",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/192x192/A855F7/FFFFFF?text=TM",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://via.placeholder.com/384x384/A855F7/FFFFFF?text=TM",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://via.placeholder.com/512x512/A855F7/FFFFFF?text=TM",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "music", "entertainment"],
+  "screenshots": [
+    {
+      "src": "/screenshots/swipe-screen.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/profile-screen.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Swipe Pool",
+      "short_name": "Swipe",
+      "description": "Start swiping to find music matches",
+      "url": "/?tab=pool",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Chat",
+      "description": "View your matches and messages",
+      "url": "/?tab=inbox",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Leaderboard",
+      "short_name": "Rankings",
+      "description": "Check music taste rankings",
+      "url": "/?tab=leaderboard",
+      "icons": [
+        {
+          "src": "/icons/icon-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}
