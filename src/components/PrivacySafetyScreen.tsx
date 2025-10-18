@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Shield, Eye, EyeOff, Lock, UserX, AlertTriangle } from 'lucide-react';
 import { Switch } from './ui/switch';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface PrivacySafetyScreenProps {
   onBack: () => void;

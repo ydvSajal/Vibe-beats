@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useMotionValue } from 'motion/react';
 import { Heart, X, RotateCcw, Star, Zap, Flame, Sparkles, Music2, TrendingUp } from 'lucide-react';
 import { ProfileCard } from './ProfileCard';
 import { api } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 const mockProfiles = [
   {

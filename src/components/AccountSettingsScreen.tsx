@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Bell, Eye, EyeOff, Mail, Smartphone, Trash2, AlertCircle } from 'lucide-react';
 import { Switch } from './ui/switch';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface AccountSettingsScreenProps {
   onBack: () => void;

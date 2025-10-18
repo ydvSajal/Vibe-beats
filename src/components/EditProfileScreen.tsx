@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Camera, Trash2, Save, Music2 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface EditProfileScreenProps {
   onBack: () => void;

@@ -3,7 +3,7 @@ import { Music2, Heart, MessageCircle, Trophy, Sparkles, ArrowRight, Users, Play
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { setAuthToken } from '../utils/api';
 import { setCurrentUserId } from '../utils/mockAuth';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface LandingPageProps {
   onGetStarted: () => void;

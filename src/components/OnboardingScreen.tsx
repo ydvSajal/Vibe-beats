@@ -4,7 +4,7 @@ import { Music2, ArrowLeft, Mail, User, Sparkles, Check, Flame } from 'lucide-re
 import { OTPInput } from './OTPInput';
 import { api, setAuthToken } from '../utils/api';
 import { setCurrentUserId } from '../utils/mockAuth';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface OnboardingScreenProps {
   onComplete: () => void;

@@ -9,7 +9,7 @@ import { AccountSettingsScreen } from './AccountSettingsScreen';
 import { PrivacySafetyScreen } from './PrivacySafetyScreen';
 import { api, clearAuthToken } from '../utils/api';
 import { clearCurrentUserId } from '../utils/mockAuth';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 const myProfile = {
   name: 'You',

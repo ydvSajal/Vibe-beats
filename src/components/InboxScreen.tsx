@@ -4,7 +4,7 @@ import { ArrowLeft, Send, Lock, Heart, MoreVertical, Phone, Video, MessageCircle
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { api } from '../utils/api';
 import { getCurrentUserId } from '../utils/mockAuth';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface Conversation {
   id: string;

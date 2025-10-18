@@ -4,7 +4,7 @@ import { Camera, Music, Sparkles, Check, Flame } from 'lucide-react';
 import { SongCard } from './SongCard';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { api } from '../utils/api';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface ProfileCreationScreenProps {
   onComplete: () => void;
