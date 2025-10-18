@@ -1,12 +1,14 @@
 {
-  "buildCommand": "npm install && npm run build",
-  "outputDirectory": "build",
-  "framework": "vite",
-  "installCommand": "npm install --legacy-peer-deps",
+  "buildCommand": "npm ci && npm run build",
+  "outputDirectory": "./build",
   "env": {
-    "CI": "true"
+    "VITE_PUBLIC_SUPABASE_URL": "@VITE_PUBLIC_SUPABASE_URL",
+    "VITE_PUBLIC_SUPABASE_ANON_KEY": "@VITE_PUBLIC_SUPABASE_ANON_KEY"
   },
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(?!.*\\.)",
+      "destination": "/index.html"
+    }
   ]
 }
