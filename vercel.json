@@ -1,13 +1,9 @@
 {
   "buildCommand": "npm ci && npm run build",
   "outputDirectory": "./build",
-  "env": {
-    "VITE_PUBLIC_SUPABASE_URL": "@VITE_PUBLIC_SUPABASE_URL",
-    "VITE_PUBLIC_SUPABASE_ANON_KEY": "@VITE_PUBLIC_SUPABASE_ANON_KEY"
-  },
   "rewrites": [
     {
-      "source": "/(?!.*\\.)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
