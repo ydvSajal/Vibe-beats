@@ -11,9 +11,13 @@ const PRECACHE_ASSETS = [
   '/icons/icon-128x128.png',
   '/icons/icon-144x144.png',
   '/icons/icon-152x152.png',
+  '/icons/icon-180x180.png',
   '/icons/icon-192x192.png',
   '/icons/icon-384x384.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  '/splash-screens/splash-1242x2688.png',
+  '/splash-screens/splash-1125x2436.png',
+  '/splash-screens/splash-1170x2532.png'
 ];
 
 // Install event
