@@ -1,26 +1,78 @@
 
-  <!DOCTYPE html>
-  <html lang="en">
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>PairMUSIc</title>
-      <link rel="manifest" href="/manifest.json">
-      <meta name="theme-color" content="#7c3aed" />
-    </head>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    
+    <!-- Primary Meta Tags -->
+    <title>Vibe Beats - Music Dating App</title>
+    <meta name="title" content="Vibe Beats - Music Dating App" />
+    <meta name="description" content="Connect through music. Swipe, match, and vibe with people who share your music taste!" />
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials" />
+    <meta name="theme-color" content="#FF1744" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="Vibe Beats" />
+    
+    <!-- Apple iOS Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Vibe Beats" />
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-192x192.png" />
+  </head>
 
-    <body>
-      <div id="root"></div>
-      <script type="module" src="/src/main.tsx"></script>
-      <script>
-        if ('serviceWorker' in navigator) {
-          window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/service-worker.js').catch(err => {
-              console.warn('ServiceWorker registration failed:', err);
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('[PWA] Service Worker registered:', registration.scope);
+              
+              // Check for updates
+              registration.addEventListener('updatefound', () => {
+                const newWorker = registration.installing;
+                console.log('[PWA] New service worker found');
+                
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    console.log('[PWA] New content available, please refresh');
+                  }
+                });
+              });
+            })
+            .catch(err => {
+              console.warn('[PWA] Service Worker registration failed:', err);
             });
-          });
-        }
-      </script>
-    </body>
-  </html>
+        });
+      }
+      
+      // Handle PWA install prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        console.log('[PWA] Install prompt ready');
+        
+        // Dispatch custom event that React can listen to
+        window.dispatchEvent(new CustomEvent('pwa-install-available'));
+      });
+      
+      // Listen for app installed
+      window.addEventListener('appinstalled', () => {
+        console.log('[PWA] App installed successfully');
+        deferredPrompt = null;
+      });
+    </script>
+  </body>
+</html>
   
