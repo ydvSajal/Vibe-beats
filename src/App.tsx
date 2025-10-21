@@ -58,6 +58,7 @@ export default function App() {
           onGetStarted={() => setAppState('onboarding')}
           onDemoLogin={() => setAppState('main')}
         />
+        <InstallPrompt />
         <Toaster position="top-center" richColors />
       </>
     );
@@ -70,6 +71,7 @@ export default function App() {
           onComplete={() => setAppState('profile-creation')}
           onBack={() => setAppState('landing')}
         />
+        <InstallPrompt />
         <Toaster position="top-center" richColors />
       </>
     );
@@ -79,6 +81,7 @@ export default function App() {
     return (
       <>
         <ProfileCreationScreen onComplete={() => setAppState('main')} />
+        <InstallPrompt />
         <Toaster position="top-center" richColors />
       </>
     );

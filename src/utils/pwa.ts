@@ -122,6 +122,18 @@ export function setupInstallPrompt() {
     console.log('[PWA] App installed successfully');
     deferredPrompt = null;
   });
+
+  // For iOS devices, there is no beforeinstallprompt event. Show a custom
+  // install hint for iOS Safari users so they know how to add the app to
+  // the home screen.
+  try {
+    if (isIos() && isMobile() && !isPWA()) {
+      // Delay slightly so it doesn't appear immediately on page load
+      setTimeout(() => showInstallButton(), 1500);
+    }
+  } catch (e) {
+    // Defensive: functions may be unavailable in some browsing contexts
+  }
 }
 
 /**
@@ -177,6 +189,26 @@ export function canInstall(): boolean {
 }
 
 /**
+ * Detect if the visitor is on an iOS device (iPhone/iPad/iPod).
+ * Covers iPadOS detection which may report 'Macintosh' but supports touch.
+ */
+export function isIos(): boolean {
+  const ua = window.navigator.userAgent || '';
+  const isiPhone = /iPhone/.test(ua);
+  const isiPod = /iPod/.test(ua);
+  const isiPad = /iPad/.test(ua) || (ua.includes('Macintosh') && 'ontouchend' in document);
+  return isiPhone || isiPad || isiPod;
+}
+
+/**
+ * Simple mobile detection for showing mobile-only UI.
+ */
+export function isMobile(): boolean {
+  const ua = window.navigator.userAgent || '';
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(ua) || window.innerWidth <= 800;
+}
+
+/**
  * Request notification permission
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
@@ -202,12 +234,14 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
  */
 export async function subscribeToPushNotifications(registration: ServiceWorkerRegistration): Promise<PushSubscription | null> {
   try {
+    const applicationServerKey = urlBase64ToUint8Array(
+      // Replace with your VAPID public key
+      'YOUR_VAPID_PUBLIC_KEY_HERE'
+    );
+
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(
-        // Replace with your VAPID public key
-        'YOUR_VAPID_PUBLIC_KEY_HERE'
-      )
+      applicationServerKey: applicationServerKey as unknown as BufferSource
     });
 
     console.log('[PWA] Push subscription successful:', subscription);
