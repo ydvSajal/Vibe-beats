@@ -1,0 +1,8 @@
+{
+  "imports": {
+    "npm:": "https://esm.sh/"
+  },
+  "tasks": {
+    "start": "deno run --allow-all src/index.tsx"
+  }
+}

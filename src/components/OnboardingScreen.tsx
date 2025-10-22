@@ -12,12 +12,14 @@ interface OnboardingScreenProps {
 }
 
 export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) {
+  const [mode, setMode] = useState<'login' | 'register'>('register');
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [showOTP, setShowOTP] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  // REGISTER HANDLERS
   const handleEmailSubmit = async () => {
     if (!email.includes('@bennett.edu.in')) {
       toast.error('Please use your @bennett.edu.in email');
@@ -48,6 +50,35 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
     } catch (error) {
       console.error('Signup error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create account');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // LOGIN HANDLER
+  const handleLogin = async () => {
+    if (!email.includes('@bennett.edu.in')) {
+      toast.error('Please use your @bennett.edu.in email');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.auth.login(email);
+      
+      if (response.success) {
+        const mockToken = `demo_${response.userId}`;
+        setAuthToken(mockToken);
+        setCurrentUserId(response.userId);
+        
+        toast.success('Logged in successfully! 🎉');
+        setTimeout(() => {
+          onComplete();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      toast.error(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -119,7 +150,7 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
             <AnimatePresence mode="wait">
               {!showOTP ? (
                 <motion.div
-                  key="signup"
+                  key="auth"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
@@ -137,21 +168,181 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
                     <Flame className="w-12 h-12 text-white" />
                   </motion.div>
 
-                  {/* Title */}
-                  <h1 className="text-5xl text-white mb-3">
-                    Create Account
-                  </h1>
-                  <p className="text-xl text-white/80 mb-10">
-                    Join Bennett's music community
-                  </p>
+                  {/* Tab Buttons */}
+                  <div className="flex gap-3 mb-10 bg-white/10 backdrop-blur-xl rounded-2xl p-1 border border-white/20">
+                    <motion.button
+                      onClick={() => {
+                        setMode('register');
+                        setEmail('');
+                        setName('');
+                        setShowNameInput(false);
+                      }}
+                      className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+                        mode === 'register'
+                          ? 'bg-white text-[#FF1744] shadow-lg'
+                          : 'text-white/80 hover:text-white'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Register
+                    </motion.button>
+                    <motion.button
+                      onClick={() => {
+                        setMode('login');
+                        setEmail('');
+                        setName('');
+                        setShowNameInput(false);
+                      }}
+                      className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
+                        mode === 'login'
+                          ? 'bg-white text-[#FF1744] shadow-lg'
+                          : 'text-white/80 hover:text-white'
+                      }`}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      Login
+                    </motion.button>
+                  </div>
 
-                  {/* Email Input */}
-                  {!showNameInput ? (
+                  {/* REGISTER MODE */}
+                  {mode === 'register' ? (
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       className="space-y-6"
                     >
+                      {/* Title */}
+                      <div>
+                        <h1 className="text-5xl text-white mb-3">
+                          Create Account
+                        </h1>
+                        <p className="text-xl text-white/80">
+                          Join Bennett's music community
+                        </p>
+                      </div>
+
+                      {/* Email Input */}
+                      {!showNameInput ? (
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-6"
+                        >
+                          <div className="relative">
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <Mail className="w-5 h-5 text-white/60" />
+                            </div>
+                            <input
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="your.name@bennett.edu.in"
+                              className="w-full pl-14 pr-6 py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white placeholder-white/50 text-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-white/30"
+                              onKeyPress={(e) => e.key === 'Enter' && handleEmailSubmit()}
+                            />
+                          </div>
+
+                          <motion.button
+                            onClick={handleEmailSubmit}
+                            disabled={!email || loading}
+                            className="w-full py-5 bg-white text-[#FF1744] rounded-2xl text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            {loading ? (
+                              <div className="w-6 h-6 border-3 border-[#FF1744] border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span>Continue</span>
+                                <Sparkles className="w-5 h-5" />
+                              </>
+                            )}
+                          </motion.button>
+
+                          <p className="text-white/60 text-sm">
+                            Use your Bennett University email address
+                          </p>
+                        </motion.div>
+                      ) : (
+                        /* Name Input */
+                        <motion.div
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="space-y-6"
+                        >
+                          {/* Email Confirmation */}
+                          <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                              <Check className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 text-left">
+                              <div className="text-white/60 text-xs">Email</div>
+                              <div className="text-white text-sm truncate">{email}</div>
+                            </div>
+                            <button
+                              onClick={() => {
+                                setShowNameInput(false);
+                                setEmail('');
+                              }}
+                              className="text-white/60 hover:text-white text-sm"
+                            >
+                              Edit
+                            </button>
+                          </div>
+
+                          <div className="relative">
+                            <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                              <User className="w-5 h-5 text-white/60" />
+                            </div>
+                            <input
+                              type="text"
+                              value={name}
+                              onChange={(e) => setName(e.target.value)}
+                              placeholder="Your full name"
+                              className="w-full pl-14 pr-6 py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white placeholder-white/50 text-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-white/30"
+                              onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
+                              autoFocus
+                            />
+                          </div>
+
+                          <motion.button
+                            onClick={handleNameSubmit}
+                            disabled={!name.trim() || loading}
+                            className="w-full py-5 bg-white text-[#FF1744] rounded-2xl text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                          >
+                            {loading ? (
+                              <div className="w-6 h-6 border-3 border-[#FF1744] border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <>
+                                <span>Send Verification Code</span>
+                                <Sparkles className="w-5 h-5" />
+                              </>
+                            )}
+                          </motion.button>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    /* LOGIN MODE */
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-6"
+                    >
+                      {/* Title */}
+                      <div>
+                        <h1 className="text-5xl text-white mb-3">
+                          Welcome Back
+                        </h1>
+                        <p className="text-xl text-white/80">
+                          Sign in to your account
+                        </p>
+                      </div>
+
                       <div className="relative">
                         <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
                           <Mail className="w-5 h-5 text-white/60" />
@@ -162,12 +353,12 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
                           onChange={(e) => setEmail(e.target.value)}
                           placeholder="your.name@bennett.edu.in"
                           className="w-full pl-14 pr-6 py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white placeholder-white/50 text-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-white/30"
-                          onKeyPress={(e) => e.key === 'Enter' && handleEmailSubmit()}
+                          onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
                         />
                       </div>
 
                       <motion.button
-                        onClick={handleEmailSubmit}
+                        onClick={handleLogin}
                         disabled={!email || loading}
                         className="w-full py-5 bg-white text-[#FF1744] rounded-2xl text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         whileHover={{ scale: 1.02 }}
@@ -177,7 +368,7 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
                           <div className="w-6 h-6 border-3 border-[#FF1744] border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <>
-                            <span>Continue</span>
+                            <span>Login</span>
                             <Sparkles className="w-5 h-5" />
                           </>
                         )}
@@ -186,65 +377,6 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
                       <p className="text-white/60 text-sm">
                         Use your Bennett University email address
                       </p>
-                    </motion.div>
-                  ) : (
-                    /* Name Input */
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="space-y-6"
-                    >
-                      {/* Email Confirmation */}
-                      <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                          <Check className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 text-left">
-                          <div className="text-white/60 text-xs">Email</div>
-                          <div className="text-white text-sm truncate">{email}</div>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setShowNameInput(false);
-                            setEmail('');
-                          }}
-                          className="text-white/60 hover:text-white text-sm"
-                        >
-                          Edit
-                        </button>
-                      </div>
-
-                      <div className="relative">
-                        <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
-                          <User className="w-5 h-5 text-white/60" />
-                        </div>
-                        <input
-                          type="text"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          placeholder="Your full name"
-                          className="w-full pl-14 pr-6 py-5 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl text-white placeholder-white/50 text-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-white/30"
-                          onKeyPress={(e) => e.key === 'Enter' && handleNameSubmit()}
-                          autoFocus
-                        />
-                      </div>
-
-                      <motion.button
-                        onClick={handleNameSubmit}
-                        disabled={!name.trim() || loading}
-                        className="w-full py-5 bg-white text-[#FF1744] rounded-2xl text-lg shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        {loading ? (
-                          <div className="w-6 h-6 border-3 border-[#FF1744] border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <>
-                            <span>Send Verification Code</span>
-                            <Sparkles className="w-5 h-5" />
-                          </>
-                        )}
-                      </motion.button>
                     </motion.div>
                   )}
                 </motion.div>
@@ -278,7 +410,6 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
                   <OTPInput
                     length={6}
                     onComplete={handleOTPComplete}
-                    disabled={loading}
                   />
 
                   <motion.button

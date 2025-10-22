@@ -51,6 +51,13 @@ export const api = {
       });
     },
     
+    login: async (email: string) => {
+      return apiCall('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+    },
+    
     verifyOTP: async (email: string, otp: string) => {
       return apiCall('/auth/verify-otp', {
         method: 'POST',

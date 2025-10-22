@@ -1,0 +1,24 @@
+{
+  "api": {
+    "port": 54321,
+    "schemas": ["public"],
+    "max_rows": 1000
+  },
+  "db": {
+    "port": 54322,
+    "major_version": 15,
+    "seed": "supabase/migrations/seed.sql"
+  },
+  "studio": {
+    "port": 54323
+  },
+  "inbucket": {
+    "port": 54324
+  },
+  "jwt": {
+    "expiration": 3600,
+    "refresh_interval": 10,
+    "admin": "super-secret-jwt-token-with-at-least-32-characters-long",
+    "anonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV6b3Zua2xtdnFxZmlvamp2bWVsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNjMzNTYsImV4cCI6MjA3NTczOTM1Nn0._gT4PmAjO3mPOnLA9qKxkHhTV3rEwBxiHDI13FzQv4M"
+  }
+}
