@@ -54,6 +54,7 @@ export function AccountSettingsScreen({ onBack }: AccountSettingsScreenProps) {
               <Switch
                 checked={notifications}
                 onCheckedChange={setNotifications}
+                aria-label="Push Notifications"
               />
             </div>
 
@@ -65,6 +66,8 @@ export function AccountSettingsScreen({ onBack }: AccountSettingsScreenProps) {
               <Switch
                 checked={emailNotifs}
                 onCheckedChange={setEmailNotifs}
+                aria-label="Email Notifications"
+                disabled={!notifications}
               />
             </div>
 
@@ -76,6 +79,8 @@ export function AccountSettingsScreen({ onBack }: AccountSettingsScreenProps) {
               <Switch
                 checked={matchNotifs}
                 onCheckedChange={setMatchNotifs}
+                aria-label="New Matches"
+                disabled={!notifications}
               />
             </div>
 
@@ -87,6 +92,8 @@ export function AccountSettingsScreen({ onBack }: AccountSettingsScreenProps) {
               <Switch
                 checked={messageNotifs}
                 onCheckedChange={setMessageNotifs}
+                aria-label="Messages"
+                disabled={!notifications}
               />
             </div>
           </div>
