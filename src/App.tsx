@@ -56,7 +56,6 @@ export default function App() {
       <>
         <LandingPage 
           onGetStarted={() => setAppState('onboarding')}
-          onDemoLogin={() => setAppState('main')}
         />
         <InstallPrompt />
         <Toaster position="top-center" richColors />

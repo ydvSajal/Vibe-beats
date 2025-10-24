@@ -16,73 +16,6 @@ interface LeaderboardUser {
   rank: number;
 }
 
-const mockLeaderboard: LeaderboardUser[] = [
-  {
-    id: '1',
-    name: 'Arjun Kumar',
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    rightSwipes: 432,
-    category: 'Hip-Hop',
-    rank: 1,
-  },
-  {
-    id: '2',
-    name: 'Priya Sharma',
-    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    rightSwipes: 398,
-    category: 'Indie',
-    rank: 2,
-  },
-  {
-    id: '3',
-    name: 'Rahul Singh',
-    photo: 'https://images.unsplash.com/photo-1577434818789-bffe036a0024?w=400',
-    rightSwipes: 375,
-    category: 'Rock',
-    rank: 3,
-  },
-  {
-    id: '4',
-    name: 'Ananya Patel',
-    photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400',
-    rightSwipes: 324,
-    category: 'Pop',
-    rank: 4,
-  },
-  {
-    id: '5',
-    name: 'Vikram Shah',
-    photo: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=400',
-    rightSwipes: 289,
-    category: 'EDM',
-    rank: 5,
-  },
-  {
-    id: '6',
-    name: 'Simran Kaur',
-    photo: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=400',
-    rightSwipes: 267,
-    category: 'Punjabi',
-    rank: 6,
-  },
-  {
-    id: '7',
-    name: 'Rohit Choudhary',
-    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400',
-    rightSwipes: 245,
-    category: 'Haryanvi',
-    rank: 7,
-  },
-  {
-    id: '8',
-    name: 'Neha Verma',
-    photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=400',
-    rightSwipes: 221,
-    category: 'Hindi',
-    rank: 8,
-  },
-];
-
 const categories = ['All', 'Indie', 'Rock', 'Pop', 'Hip-Hop', 'EDM', 'Jazz', 'Punjabi', 'Haryanvi', 'Hindi'];
 
 export function LeaderboardScreen() {
@@ -113,12 +46,11 @@ export function LeaderboardScreen() {
         }));
         setLeaderboard(formattedData);
       } else {
-        setLeaderboard(mockLeaderboard);
+        setLeaderboard([]);
       }
     } catch (error) {
-      // Demo mode - use mock data
-      console.log('Using demo leaderboard');
-      setLeaderboard(mockLeaderboard);
+      console.error('Failed to load leaderboard:', error);
+      setLeaderboard([]);
     } finally {
       setLoading(false);
     }

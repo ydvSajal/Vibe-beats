@@ -8,7 +8,6 @@ import { InviteFriendsScreen } from './InviteFriendsScreen';
 import { AccountSettingsScreen } from './AccountSettingsScreen';
 import { PrivacySafetyScreen } from './PrivacySafetyScreen';
 import { api, clearAuthToken } from '../utils/api';
-import { clearCurrentUserId } from '../utils/mockAuth';
 import { toast } from 'sonner';
 
 const myProfile = {
@@ -88,8 +87,7 @@ export function ProfileScreen() {
         });
       }
     } catch (error) {
-      // Demo mode - use default profile
-      console.log('Using demo profile');
+      console.error('Failed to load profile:', error);
     } finally {
       setLoading(false);
     }
@@ -98,7 +96,8 @@ export function ProfileScreen() {
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to logout?')) {
       clearAuthToken();
-      clearCurrentUserId();
+      localStorage.removeItem('userId');
+      localStorage.removeItem('demoUser'); // Clean up any leftover demo data
       toast.success('Logged out successfully');
       setTimeout(() => {
         window.location.reload();

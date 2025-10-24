@@ -1,3 +1,4 @@
+// @ts-nocheck - This is a Deno Edge Function, TypeScript errors are expected in VS Code
 import { Hono } from "npm:hono";
 import { cors } from "npm:hono/cors";
 import { logger } from "npm:hono/logger";
@@ -31,18 +32,32 @@ const getSupabaseClient = () => {
 // Helper to verify user from token
 async function verifyUser(authHeader: string | null) {
   if (!authHeader) return null;
-  const token = authHeader.split(' ')[1];
-  if (!token) return null;
   
-  const supabase = getSupabaseClient();
-  const { data: { user }, error } = await supabase.auth.getUser(token);
-  
-  if (error || !user) {
-    console.log('Auth error:', error);
+  // Handle "Bearer <token>" format
+  const parts = authHeader.split(' ');
+  if (parts.length !== 2 || parts[0] !== 'Bearer') {
+    console.log('Invalid authorization header format');
     return null;
   }
   
-  return user;
+  const token = parts[1];
+  if (!token) return null;
+  
+  const supabase = getSupabaseClient();
+  
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      console.log('Auth error:', error);
+      return null;
+    }
+    
+    return user;
+  } catch (e) {
+    console.log('verifyUser exception:', e);
+    return null;
+  }
 }
 
 // ===== HEALTH CHECK =====
@@ -52,165 +67,198 @@ app.get("/make-server-2e8e40fd/health", (c) => {
 
 // ===== AUTHENTICATION ROUTES =====
 
-// Sign up - Create user in auth and users table
-app.post("/make-server-2e8e40fd/auth/signup", async (c) => {
+// Auth entry point - unified login/signup endpoint
+app.post("/make-server-2e8e40fd/auth/entry", async (c) => {
   try {
-    const { email, name } = await c.req.json();
-    
+    const { action, email, name } = await c.req.json();
     if (!email || !email.includes('@bennett.edu.in')) {
       return c.json({ error: 'Invalid email. Must use @bennett.edu.in' }, 400);
     }
-    
+
     const supabase = getSupabaseClient();
-    
-    // Check if user already exists in users table
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id, email')
-      .eq('email', email)
-      .single();
 
-    if (existingUser) {
-      console.log('User already exists:', email);
-      return c.json({ error: 'A user with this email address has already been registered' }, 400);
+    if (action === 'login') {
+      // Look up user in users table directly
+      try {
+        const { data: user, error: getUserError } = await supabase
+          .from('users')
+          .select('id, email, name')
+          .eq('email', email)
+          .single();
+
+        if (getUserError || !user) {
+          console.log('entry.login user lookup error:', getUserError);
+          return c.json({ error: 'User not found' }, 404);
+        }
+
+        return c.json({ success: true, userId: user.id, email: user.email, name: user.name });
+      } catch (e) {
+        console.log('entry.login exception:', e);
+        return c.json({ error: 'Login lookup failed' }, 500);
+      }
     }
 
-    // Create auth user
-    const randomPassword = crypto.randomUUID();
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password: randomPassword,
-      user_metadata: { name },
-      email_confirm: true
-    });
-    
-    if (authError) {
-      console.log('Signup error:', authError);
-      return c.json({ error: authError.message }, 400);
+    if (action === 'signup') {
+      // Validate required fields
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return c.json({ error: 'Name is required for signup' }, 400);
+      }
+
+      try {
+        // Check existing user in auth.users first
+        const clientForAuth = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_ANON_KEY') ?? '');
+        
+        // Check if user exists in public.users
+        const { data: existing, error: checkError } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
+        
+        if (checkError) {
+          console.log('entry.signup check existing error:', checkError);
+          return c.json({ error: 'Database error checking existing user' }, 500);
+        }
+        
+        if (existing) {
+          return c.json({ error: 'A user with this email address has already been registered' }, 400);
+        }
+
+        // Step 1: Send OTP email using signInWithOtp
+        // This will create an auth user OR send OTP to existing auth user
+        const { data: otpData, error: otpError } = await clientForAuth.auth.signInWithOtp({ 
+          email,
+          options: {
+            shouldCreateUser: true,
+            data: {
+              name: name, // Store name in user metadata
+            }
+          }
+        });
+        
+        if (otpError) {
+          console.log('entry.signup OTP send error:', otpError);
+          return c.json({ 
+            error: `Failed to send OTP email: ${otpError.message}. Ensure email is configured in Supabase Dashboard → Authentication → Providers → Email.`,
+            details: otpError.message
+          }, 400);
+        }
+
+        console.log('OTP sent successfully for:', email);
+
+        // Return success - we'll create the public.users record after OTP verification
+        return c.json({ 
+          success: true, 
+          email: email,
+          name: name,
+          message: 'OTP sent to your email. Check your inbox and enter the 6-digit code.',
+          otpSent: true
+        });
+      } catch (e) {
+        console.log('entry.signup exception:', e);
+        return c.json({ error: 'Signup failed', details: e instanceof Error ? e.message : 'Unknown error' }, 500);
+      }
     }
 
-    // Insert user into users table
-    const { error: insertError } = await supabase
-      .from('users')
-      .insert({
-        id: authData.user.id,
-        email,
-        name,
-        is_active: true,
-      });
-
-    if (insertError) {
-      console.log('Insert user error:', insertError);
-      return c.json({ error: 'Failed to create user profile' }, 500);
-    }
-
-    // Create session
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.createSession(authData.user.id);
-    
-    if (sessionError || !sessionData.session) {
-      console.log('Session error:', sessionError);
-      return c.json({ error: 'Failed to create session' }, 500);
-    }
-    
-    return c.json({ 
-      success: true, 
-      userId: authData.user.id,
-      accessToken: sessionData.session.access_token,
-      refreshToken: sessionData.session.refresh_token
-    });
-  } catch (error) {
-    console.log('Signup error:', error);
-    return c.json({ error: 'Failed to sign up' }, 500);
+    return c.json({ error: 'Invalid action' }, 400);
+  } catch (e) {
+    console.log('auth entry exception:', e);
+    return c.json({ error: 'Auth entry error' }, 500);
   }
 });
 
-// Verify OTP
+// Verify OTP (real implementation using Supabase auth)
 app.post("/make-server-2e8e40fd/auth/verify-otp", async (c) => {
   try {
     const { email, otp } = await c.req.json();
     
-    if (otp && otp.length === 6) {
-      return c.json({ success: true, message: 'OTP verified' });
+    if (!email || !otp) {
+      return c.json({ error: 'Email and OTP required' }, 400);
     }
-    
-    return c.json({ error: 'Invalid OTP' }, 400);
-  } catch (error) {
-    console.log('Verify OTP error:', error);
-    return c.json({ error: 'Failed to verify OTP' }, 500);
-  }
-});
 
-// Login - Check if user exists and create session
-app.post("/make-server-2e8e40fd/auth/login", async (c) => {
-  try {
-    const { email } = await c.req.json();
-    
-    if (!email || !email.includes('@bennett.edu.in')) {
-      return c.json({ error: 'Invalid email. Must use @bennett.edu.in' }, 400);
+    // Create anon client for OTP verification
+    const clientForAuth = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    // Verify OTP token
+    const { data: sessionData, error: verifyError } = await clientForAuth.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'email', // OTP type for email-based OTP
+    });
+
+    if (verifyError || !sessionData.session) {
+      console.log('OTP verification error:', verifyError);
+      return c.json({ 
+        error: 'Invalid or expired OTP',
+        details: verifyError?.message
+      }, 400);
     }
-    
+
+    // Get authenticated user info from session
+    const authUserId = sessionData.user.id;
+    const authUserEmail = sessionData.user.email;
+    const authUserName = sessionData.user.user_metadata?.name || 'User';
+
+    // Check if user exists in public.users, if not create it
     const supabase = getSupabaseClient();
-    
-    // Check if user exists
-    const { data: user, error: selectError } = await supabase
+    const { data: existingUser, error: userLookupError } = await supabase
       .from('users')
-      .select('id, email, name')
-      .eq('email', email)
-      .single();
-    
-    if (selectError || !user) {
-      return c.json({ error: 'User not found. Please sign up first.' }, 404);
+      .select('*')
+      .eq('id', authUserId)
+      .maybeSingle();
+
+    let user;
+    if (!existingUser) {
+      // Create user in public.users table (first time OTP verification)
+      const { data: newUser, error: insertError } = await supabase
+        .from('users')
+        .insert({
+          id: authUserId,
+          email: authUserEmail,
+          name: authUserName,
+          is_active: true,
+          email_confirmed: true
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.log('User creation error:', insertError);
+        return c.json({ error: 'Failed to create user profile' }, 500);
+      }
+      user = newUser;
+    } else {
+      // User already exists, just update email_confirmed flag
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({ email_confirmed: true })
+        .eq('id', authUserId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.log('User update error:', updateError);
+        user = existingUser; // Use existing user data
+      } else {
+        user = updatedUser;
+      }
     }
-    
-    // Create a session for this user
-    const { data: sessionData, error: sessionError } = await supabase.auth.admin.createSession(user.id);
-    
-    if (sessionError || !sessionData.session) {
-      console.log('Session creation error:', sessionError);
-      return c.json({ error: 'Failed to create session' }, 500);
-    }
-    
+
+    // Return session token and user
     return c.json({
       success: true,
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      accessToken: sessionData.session.access_token,
-      refreshToken: sessionData.session.refresh_token
+      user: user,
+      session: {
+        access_token: sessionData.session.access_token,
+        refresh_token: sessionData.session.refresh_token,
+        expires_in: sessionData.session.expires_in,
+      }
     });
   } catch (error) {
-    console.log('Login error:', error);
-    return c.json({ error: 'Failed to log in' }, 500);
-  }
-});
-
-// Sign in
-app.post("/make-server-2e8e40fd/auth/signin", async (c) => {
-  try {
-    const { email, password } = await c.req.json();
-    
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-    );
-    
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    
-    if (error) {
-      return c.json({ error: error.message }, 401);
-    }
-    
+    console.error('Verify OTP error:', error);
     return c.json({ 
-      success: true, 
-      userId: data.user.id,
-      accessToken: data.session?.access_token 
-    });
-  } catch (error) {
-    console.log('Signin error:', error);
-    return c.json({ error: 'Failed to sign in' }, 500);
+      error: 'Failed to verify OTP',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, 500);
   }
 });
 
@@ -250,34 +298,49 @@ app.post("/make-server-2e8e40fd/profile", async (c) => {
       return c.json({ error: 'Unauthorized' }, 401);
     }
     
-    const { bio, avatar_url, age, gender, location, musical_genre, favorite_artists } = await c.req.json();
+    const { 
+      bio, 
+      avatar_url, 
+      photo,
+      age, 
+      gender, 
+      location, 
+      musical_genre, 
+      favorite_artists,
+      name 
+    } = await c.req.json();
     
     const supabase = getSupabaseClient();
+    
+    // Prepare update data (only include fields that are provided)
+    const updateData: any = {};
+    if (bio !== undefined) updateData.bio = bio;
+    if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
+    if (photo !== undefined) updateData.avatar_url = photo; // photo alias for avatar_url
+    if (age !== undefined) updateData.age = age;
+    if (gender !== undefined) updateData.gender = gender;
+    if (location !== undefined) updateData.location = location;
+    if (musical_genre !== undefined) updateData.musical_genre = musical_genre;
+    if (favorite_artists !== undefined) updateData.favorite_artists = favorite_artists;
+    if (name !== undefined) updateData.name = name;
     
     // Update users table
     const { error: updateError } = await supabase
       .from('users')
-      .update({
-        bio,
-        avatar_url,
-        age,
-        gender,
-        location,
-        musical_genre,
-        favorite_artists,
-      })
+      .update(updateData)
       .eq('id', user.id);
 
     if (updateError) {
+      console.log('Profile update error:', updateError);
       return c.json({ error: updateError.message }, 500);
     }
 
-    // Get or create user profile
+    // Get or create user profile in user_profiles table
     const { data: existingProfile } = await supabase
       .from('user_profiles')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (existingProfile) {
       // Update existing profile
@@ -285,13 +348,13 @@ app.post("/make-server-2e8e40fd/profile", async (c) => {
         .from('user_profiles')
         .update({
           profile_completed: true,
-          profile_picture_url: avatar_url,
-          bio,
+          profile_picture_url: avatar_url || photo,
+          bio: bio || existingProfile.bio,
         })
         .eq('user_id', user.id);
 
       if (profileError) {
-        return c.json({ error: profileError.message }, 500);
+        console.log('User profile update error:', profileError);
       }
     } else {
       // Create new profile
@@ -300,12 +363,12 @@ app.post("/make-server-2e8e40fd/profile", async (c) => {
         .insert({
           user_id: user.id,
           profile_completed: true,
-          profile_picture_url: avatar_url,
-          bio,
+          profile_picture_url: avatar_url || photo,
+          bio: bio || '',
         });
 
       if (insertError) {
-        return c.json({ error: insertError.message }, 500);
+        console.log('User profile creation error:', insertError);
       }
     }
     

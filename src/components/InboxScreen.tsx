@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ArrowLeft, Send, Lock, Heart, MoreVertical, Phone, Video, MessageCircle, Smile, Image as ImageIcon, Mic, Check, CheckCheck, Sparkles, X } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { api } from '../utils/api';
-import { getCurrentUserId } from '../utils/mockAuth';
 import { toast } from 'sonner';
 
 interface Conversation {
@@ -14,6 +13,8 @@ interface Conversation {
   timestamp: string;
   isLocked: boolean;
   unread: boolean;
+  recipientId?: string; // Add recipientId for API calls
+  userId?: string; // Alternate field name
 }
 
 interface Message {
@@ -23,68 +24,8 @@ interface Message {
   timestamp: string;
 }
 
-const mockConversations: Conversation[] = [
-  {
-    id: '1',
-    name: 'Sarah',
-    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
-    lastMessage: 'Love your taste in indie music! 🎵',
-    timestamp: '2m',
-    isLocked: false,
-    unread: true,
-  },
-  {
-    id: '2',
-    name: 'Arjun',
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400',
-    lastMessage: 'Have you heard the new album?',
-    timestamp: '1h',
-    isLocked: false,
-    unread: false,
-  },
-  {
-    id: '3',
-    name: 'Priya',
-    photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400',
-    lastMessage: 'It\'s a match! Say hi 👋',
-    timestamp: '3h',
-    isLocked: true,
-    unread: true,
-  },
-  {
-    id: '4',
-    name: 'Vikram',
-    photo: 'https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=400',
-    lastMessage: 'Those songs are fire! 🔥',
-    timestamp: '5h',
-    isLocked: false,
-    unread: false,
-  },
-];
-
-const mockMessages: Message[] = [
-  {
-    id: '1',
-    text: 'Hey! I saw we both love The Weeknd 🎵',
-    sender: 'them',
-    timestamp: '10:30 AM',
-  },
-  {
-    id: '2',
-    text: 'Yes! Blinding Lights is my all-time favorite',
-    sender: 'me',
-    timestamp: '10:32 AM',
-  },
-  {
-    id: '3',
-    text: 'Love your taste in indie music! 🎵',
-    sender: 'them',
-    timestamp: '10:35 AM',
-  },
-];
-
 export function InboxScreen() {
-  const [conversations, setConversations] = useState<Conversation[]>(mockConversations);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -103,36 +44,33 @@ export function InboxScreen() {
 
   const loadConversations = async () => {
     try {
-      const userId = getCurrentUserId();
       const response = await api.messages.getConversations();
       
       if (response.conversations && response.conversations.length > 0) {
         setConversations(response.conversations);
       } else {
-        setConversations(mockConversations);
+        setConversations([]);
       }
     } catch (error) {
-      // Demo mode - use mock data
-      console.log('Using demo conversations');
-      setConversations(mockConversations);
+      console.error('Failed to load conversations:', error);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMessages = async (conversationId: string) => {
+  const loadMessages = async (otherUserId: string) => {
     try {
-      const response = await api.messages.get(conversationId);
+      const response = await api.messages.getMessages(otherUserId);
       
       if (response.messages && response.messages.length > 0) {
         setMessages(response.messages);
       } else {
-        setMessages(mockMessages);
+        setMessages([]);
       }
     } catch (error) {
-      // Demo mode - use mock data
-      console.log('Using demo messages');
-      setMessages(mockMessages);
+      console.error('Failed to load messages:', error);
+      setMessages([]);
     }
   };
 
@@ -154,14 +92,16 @@ export function InboxScreen() {
 
     setSending(true);
     try {
-      const response = await api.messages.send(selectedChat.id, newMessage);
+      // Get the other user's ID from the selectedChat
+      const recipientId = selectedChat.recipientId || selectedChat.userId || selectedChat.id;
+      const response = await api.messages.send(recipientId, newMessage);
       
       if (response.success) {
         const message: Message = {
-          id: response.message.id,
+          id: response.message?.id || Date.now().toString(),
           text: newMessage,
           sender: 'me',
-          timestamp: formatTimestamp(response.message.timestamp),
+          timestamp: formatTimestamp(new Date().toISOString()),
         };
 
         setMessages([...messages, message]);
@@ -172,20 +112,8 @@ export function InboxScreen() {
         }
       }
     } catch (error) {
-      // Demo mode - add message anyway
-      const message: Message = {
-        id: Date.now().toString(),
-        text: newMessage,
-        sender: 'me',
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
-      };
-
-      setMessages([...messages, message]);
-      setNewMessage('');
-      
-      if (selectedChat.isLocked) {
-        setSelectedChat({ ...selectedChat, isLocked: false });
-      }
+      console.error('Failed to send message:', error);
+      // Don't add message optimistically if API fails in production
     } finally {
       setSending(false);
     }

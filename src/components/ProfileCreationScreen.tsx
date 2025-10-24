@@ -10,44 +10,6 @@ interface ProfileCreationScreenProps {
   onComplete: () => void;
 }
 
-const mockSongs = [
-  {
-    id: 1,
-    artwork: 'https://images.unsplash.com/photo-1562712558-ac2eaab4a3b7?w=400',
-    title: 'Blinding Lights',
-    artist: 'The Weeknd',
-    isLocked: true,
-  },
-  {
-    id: 2,
-    artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=400',
-    title: 'Heat Waves',
-    artist: 'Glass Animals',
-    isLocked: true,
-  },
-  {
-    id: 3,
-    artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400',
-    title: 'Levitating',
-    artist: 'Dua Lipa',
-    isEditable: true,
-  },
-  {
-    id: 4,
-    artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=400',
-    title: 'Good 4 U',
-    artist: 'Olivia Rodrigo',
-    isEditable: true,
-  },
-  {
-    id: 5,
-    artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=400',
-    title: 'Peaches',
-    artist: 'Justin Bieber',
-    isEditable: true,
-  },
-];
-
 const categories = [
   { name: 'Indie', emoji: '🎸', gradient: 'from-[#FF1744] to-[#F50057]' },
   { name: 'Pop', emoji: '🎤', gradient: 'from-[#E91E63] to-[#9C27B0]' },
@@ -64,11 +26,24 @@ export function ProfileCreationScreen({ onComplete }: ProfileCreationScreenProps
   const [connected, setConnected] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Indie');
   const [loading, setLoading] = useState(false);
+  const [userSongs, setUserSongs] = useState<any[]>([]);
 
-  const handleConnectSpotify = () => {
-    // Simulate Spotify connection
-    setConnected(true);
-    toast.success('Connected to Spotify! 🎵');
+  const handleConnectSpotify = async () => {
+    try {
+      // In production, this would initiate Spotify OAuth flow
+      // For now, we'll just set connected to true
+      // Backend would handle fetching Spotify top tracks
+      setConnected(true);
+      toast.success('Connected to Spotify! 🎵');
+      
+      // TODO: Implement actual Spotify integration
+      // For now, require users to have tracks in their profile via backend
+      toast.info('Your Spotify tracks will be synced from your account');
+    } catch (error) {
+      console.error('Spotify connection error:', error);
+      toast.error('Failed to connect to Spotify. Please try again.');
+      setConnected(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -77,7 +52,7 @@ export function ProfileCreationScreen({ onComplete }: ProfileCreationScreenProps
       await api.profile.create({
         name: 'User',
         photo: profilePhoto,
-        songs: mockSongs,
+        songs: userSongs,
         category: selectedCategory,
       });
       
@@ -201,7 +176,7 @@ export function ProfileCreationScreen({ onComplete }: ProfileCreationScreenProps
                   Your Top Tracks
                 </h3>
                 <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
-                  {mockSongs.map((song, index) => (
+                  {userSongs.length > 0 ? userSongs.map((song, index) => (
                     <motion.div
                       key={song.id}
                       initial={{ opacity: 0, scale: 0.9 }}
@@ -217,7 +192,11 @@ export function ProfileCreationScreen({ onComplete }: ProfileCreationScreenProps
                         size="medium"
                       />
                     </motion.div>
-                  ))}
+                  )) : (
+                    <div className="text-white/70 text-center w-full py-8">
+                      No songs loaded. Try reconnecting to Spotify.
+                    </div>
+                  )}
                 </div>
               </div>
 

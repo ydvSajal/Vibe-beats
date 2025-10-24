@@ -45,16 +45,16 @@ const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 export const api = {
   auth: {
     signup: async (email: string, name: string) => {
-      return apiCall('/auth/signup', {
+      return apiCall('/auth/entry', {
         method: 'POST',
-        body: JSON.stringify({ email, name }),
+        body: JSON.stringify({ action: 'signup', email, name }),
       });
     },
     
     login: async (email: string) => {
-      return apiCall('/auth/login', {
+      return apiCall('/auth/entry', {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ action: 'login', email }),
       });
     },
     
@@ -65,27 +65,44 @@ export const api = {
       });
     },
     
-    signin: async (email: string) => {
-      return apiCall('/auth/signin', {
-        method: 'POST',
-        body: JSON.stringify({ email }),
-      });
-    },
-    
     getMe: async () => {
       return apiCall('/auth/me');
     },
   },
 
   profile: {
-    create: async (data: { name: string; photo: string; songs: any[]; category: string }) => {
+    create: async (data: { 
+      name?: string; 
+      photo?: string; 
+      songs?: any[]; 
+      category?: string;
+      bio?: string;
+      age?: number;
+      gender?: string;
+      musical_genre?: string;
+      avatar_url?: string;
+      location?: string;
+      favorite_artists?: string[];
+    }) => {
       return apiCall('/profile', {
         method: 'POST',
         body: JSON.stringify(data),
       });
     },
     
-    update: async (data: Partial<{ name: string; photo: string; songs: any[]; category: string }>) => {
+    update: async (data: Partial<{ 
+      name: string; 
+      photo: string; 
+      songs: any[]; 
+      category: string;
+      bio: string;
+      age: number;
+      gender: string;
+      musical_genre: string;
+      avatar_url: string;
+      location: string;
+      favorite_artists: string[];
+    }>) => {
       return apiCall('/profile', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -102,15 +119,19 @@ export const api = {
       return apiCall('/matches/potential');
     },
     
-    swipe: async (targetUserId: string, direction: 'left' | 'right') => {
+    swipe: async (swipedUserId: string, direction: 'left' | 'right', songId?: string) => {
       return apiCall('/matches/swipe', {
         method: 'POST',
-        body: JSON.stringify({ targetUserId, direction }),
+        body: JSON.stringify({ 
+          swiped_user_id: swipedUserId, 
+          song_id: songId || null,
+          direction: direction === 'left' ? 'skip' : 'like'
+        }),
       });
     },
     
     getMatches: async () => {
-      return apiCall('/matches');
+      return apiCall('/matches/get');
     },
   },
 
@@ -119,14 +140,14 @@ export const api = {
       return apiCall('/messages/conversations');
     },
     
-    getMessages: async (conversationId: string) => {
-      return apiCall(`/messages/${conversationId}`);
+    getMessages: async (otherUserId: string) => {
+      return apiCall(`/messages/get/${otherUserId}`);
     },
     
-    send: async (conversationId: string, text: string) => {
+    send: async (recipientId: string, content: string) => {
       return apiCall('/messages/send', {
         method: 'POST',
-        body: JSON.stringify({ conversationId, text }),
+        body: JSON.stringify({ recipient_id: recipientId, content }),
       });
     },
   },

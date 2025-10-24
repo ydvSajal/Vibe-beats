@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Music2, ArrowLeft, Mail, User, Sparkles, Check, Flame } from 'lucide-react';
 import { OTPInput } from './OTPInput';
+import { CompleteOnboarding } from './CompleteOnboarding';
 import { api, setAuthToken } from '../utils/api';
-import { setCurrentUserId } from '../utils/mockAuth';
 import { toast } from 'sonner';
 
 interface OnboardingScreenProps {
@@ -16,6 +16,7 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [showOTP, setShowOTP] = useState(false);
+  const [showCompleteOnboarding, setShowCompleteOnboarding] = useState(false);
   const [showNameInput, setShowNameInput] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -40,9 +41,10 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
       const response = await api.auth.signup(email, name);
       
       if (response.success) {
-        const mockToken = `demo_${response.userId}`;
-        setAuthToken(mockToken);
-        setCurrentUserId(response.userId);
+        // Store auth token (in production, this would be a real JWT from backend)
+        const authToken = response.token || `auth_${response.userId}_${Date.now()}`;
+        setAuthToken(authToken);
+        localStorage.setItem('userId', response.userId);
         
         toast.success('Account created! Verify your email...');
         setShowOTP(true);
@@ -65,20 +67,41 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
     setLoading(true);
     try {
       const response = await api.auth.login(email);
-      
+      console.log('Login response:', response);
+
       if (response.success) {
-        const mockToken = `demo_${response.userId}`;
-        setAuthToken(mockToken);
-        setCurrentUserId(response.userId);
-        
-        toast.success('Logged in successfully! 🎉');
+        // Store auth token (in production, this would be a real JWT from backend)
+        const authToken = response.token || `auth_${response.userId}_${Date.now()}`;
+        setAuthToken(authToken);
+        localStorage.setItem('userId', response.userId);
+
+        // If server returned a warning (e.g., session creation failed), show it
+        if (response.warning || response.sessionError) {
+          toast.error(`Logged in but server warning: ${response.warning || response.sessionError}`);
+        } else {
+          toast.success('Logged in successfully! 🎉');
+        }
+
         setTimeout(() => {
           onComplete();
         }, 500);
+        return;
+      }
+
+      // If not success, surface server-provided message
+      if (response && response.error) {
+        toast.error(response.error);
+      } else {
+        toast.error('Login failed. Please try again.');
       }
     } catch (error) {
-      console.error('Login error:', error);
-      toast.error(error instanceof Error ? error.message : 'Login failed. Please try again.');
+      console.error('Login error (catch):', error);
+      // show more detailed message when available
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Login failed. Please check the console for details.');
+      }
     } finally {
       setLoading(false);
     }
@@ -90,10 +113,20 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
       const response = await api.auth.verifyOTP(email, otp);
       
       if (response.success) {
-        toast.success('Email verified! 🎉');
-        setTimeout(() => {
-          onComplete();
-        }, 500);
+        // Store session tokens
+        if (response.session) {
+          localStorage.setItem('authToken', response.session.access_token);
+          localStorage.setItem('refreshToken', response.session.refresh_token);
+          setAuthToken(response.session.access_token);
+        }
+        localStorage.setItem('userId', response.user?.id || '');
+        localStorage.setItem('userEmail', email);
+        localStorage.setItem('userName', name);
+        
+        toast.success('Email verified! ✅');
+        
+        // Show complete onboarding flow
+        setShowCompleteOnboarding(true);
       }
     } catch (error) {
       console.error('OTP verification error:', error);
@@ -102,6 +135,17 @@ export function OnboardingScreen({ onComplete, onBack }: OnboardingScreenProps) 
       setLoading(false);
     }
   };
+
+  // If completing onboarding, show the CompleteOnboarding screen
+  if (showCompleteOnboarding) {
+    return (
+      <CompleteOnboarding
+        onComplete={onComplete}
+        userName={name}
+        userEmail={email}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#FF1744] via-[#FF6B9D] to-[#FFC1E3] dark:from-gray-900 dark:via-purple-900 dark:to-gray-800 overflow-hidden">

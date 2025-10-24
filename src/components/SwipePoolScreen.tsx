@@ -5,119 +5,8 @@ import { ProfileCard } from './ProfileCard';
 import { api } from '../utils/api';
 import { toast } from 'sonner';
 
-const mockProfiles = [
-  {
-    id: '1',
-    name: 'Sarah',
-    age: 20,
-    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=600',
-    school: 'Bennett University',
-    distance: '2 km away',
-    category: 'Indie',
-    matchScore: 94,
-    songs: [
-      { id: 1, artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', title: 'Blinding Lights', artist: 'The Weeknd' },
-      { id: 2, artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300', title: 'Levitating', artist: 'Dua Lipa' },
-      { id: 3, artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300', title: 'Good 4 U', artist: 'Olivia Rodrigo' },
-      { id: 4, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Watermelon Sugar', artist: 'Harry Styles' },
-      { id: 5, artwork: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300', title: 'drivers license', artist: 'Olivia Rodrigo' },
-      { id: 6, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Peaches', artist: 'Justin Bieber' },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Arjun',
-    age: 21,
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600',
-    school: 'Bennett University',
-    distance: '1 km away',
-    category: 'Hip-Hop',
-    matchScore: 88,
-    songs: [
-      { id: 11, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'HUMBLE.', artist: 'Kendrick Lamar' },
-      { id: 12, artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', title: 'Sicko Mode', artist: 'Travis Scott' },
-      { id: 13, artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300', title: 'Gods Plan', artist: 'Drake' },
-      { id: 14, artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300', title: 'Rockstar', artist: 'Post Malone' },
-      { id: 15, artwork: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300', title: 'The Box', artist: 'Roddy Ricch' },
-      { id: 16, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Life Is Good', artist: 'Future' },
-    ],
-  },
-  {
-    id: '3',
-    name: 'Priya',
-    age: 19,
-    photo: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=600',
-    school: 'Bennett University',
-    distance: '3 km away',
-    category: 'Pop',
-    matchScore: 92,
-    songs: [
-      { id: 21, artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300', title: 'Anti-Hero', artist: 'Taylor Swift' },
-      { id: 22, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Flowers', artist: 'Miley Cyrus' },
-      { id: 23, artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', title: 'As It Was', artist: 'Harry Styles' },
-      { id: 24, artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300', title: 'Shake It Off', artist: 'Taylor Swift' },
-      { id: 25, artwork: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300', title: 'Blank Space', artist: 'Taylor Swift' },
-      { id: 26, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Cruel Summer', artist: 'Taylor Swift' },
-    ],
-  },
-  {
-    id: '4',
-    name: 'Simran',
-    age: 20,
-    photo: 'https://images.unsplash.com/photo-1531123897727-8f129e1688ce?w=600',
-    school: 'Bennett University',
-    distance: '1.5 km away',
-    category: 'Punjabi',
-    matchScore: 96,
-    songs: [
-      { id: 31, artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', title: 'Excuses', artist: 'AP Dhillon' },
-      { id: 32, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Brown Munde', artist: 'AP Dhillon' },
-      { id: 33, artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300', title: 'Softly', artist: 'Karan Aujla' },
-      { id: 34, artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300', title: 'Bachke Bachke', artist: 'Diljit Dosanjh' },
-      { id: 35, artwork: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300', title: '295', artist: 'Sidhu Moose Wala' },
-      { id: 36, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Hass Hass', artist: 'Diljit Dosanjh' },
-    ],
-  },
-  {
-    id: '5',
-    name: 'Rohit',
-    age: 22,
-    photo: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=600',
-    school: 'Bennett University',
-    distance: '2.5 km away',
-    category: 'Haryanvi',
-    matchScore: 85,
-    songs: [
-      { id: 41, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Solid Body', artist: 'Diler Kharkiya' },
-      { id: 42, artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', title: '52 Gaj Ka Daman', artist: 'Renuka Panwar' },
-      { id: 43, artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300', title: 'Badli Badli Laage', artist: 'Sapna Choudhary' },
-      { id: 44, artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300', title: 'Bahu Jamindar Ki', artist: 'Masoom Sharma' },
-      { id: 45, artwork: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300', title: 'Gulabi Pagg', artist: 'Diler Kharkiya' },
-      { id: 46, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Teri Aakhya Ka Yo Kajal', artist: 'Sapna Choudhary' },
-    ],
-  },
-  {
-    id: '6',
-    name: 'Neha',
-    age: 20,
-    photo: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=600',
-    school: 'Bennett University',
-    distance: '1 km away',
-    category: 'Hindi',
-    matchScore: 90,
-    songs: [
-      { id: 51, artwork: 'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=300', title: 'Tum Hi Ho', artist: 'Arijit Singh' },
-      { id: 52, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Kesariya', artist: 'Arijit Singh' },
-      { id: 53, artwork: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=300', title: 'Chaleya', artist: 'Arijit Singh' },
-      { id: 54, artwork: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=300', title: 'Apna Bana Le', artist: 'Arijit Singh' },
-      { id: 55, artwork: 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300', title: 'Raataan Lambiyan', artist: 'Tanishk Bagchi' },
-      { id: 56, artwork: 'https://images.unsplash.com/photo-1487180144351-b8472da7d491?w=300', title: 'Tere Hawaale', artist: 'Arijit Singh' },
-    ],
-  },
-];
-
 export function SwipePoolScreen() {
-  const [profiles, setProfiles] = useState(mockProfiles);
+  const [profiles, setProfiles] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [swipeHistory, setSwipeHistory] = useState<string[]>([]);
@@ -134,18 +23,18 @@ export function SwipePoolScreen() {
       if (response.profiles && response.profiles.length > 0) {
         const formattedProfiles = response.profiles.map((p: any) => ({
           ...p,
-          age: 20,
-          school: 'Bennett University',
-          distance: '2 km away',
-          matchScore: Math.floor(Math.random() * 20) + 80,
+          age: p.age || 20,
+          school: p.school || 'Bennett University',
+          distance: p.distance || '2 km away',
+          matchScore: p.matchScore || Math.floor(Math.random() * 20) + 80,
         }));
         setProfiles(formattedProfiles);
       } else {
-        setProfiles(mockProfiles);
+        setProfiles([]);
       }
     } catch (error) {
-      console.log('Using demo profiles');
-      setProfiles(mockProfiles);
+      console.error('Failed to load profiles:', error);
+      setProfiles([]);
     } finally {
       setLoading(false);
     }
@@ -155,9 +44,13 @@ export function SwipePoolScreen() {
     const currentProfile = profiles[currentIndex];
     
     try {
-      const response = await api.matches.swipe(currentProfile.id, direction);
+      // Pass the first song ID if available, otherwise undefined
+      const songId = currentProfile.songs && currentProfile.songs.length > 0 
+        ? String(currentProfile.songs[0].id)
+        : undefined;
+      const response = await api.matches.swipe(currentProfile.id, direction, songId);
       
-      if (response.isMatch) {
+      if (response.matched) {
         toast.success(`🎉 It's a Match with ${currentProfile.name}!`, {
           description: 'You can now start chatting',
           duration: 4000,

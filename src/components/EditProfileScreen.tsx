@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ArrowLeft, Camera, Trash2, Save, Music2 } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { api } from '../utils/api';
 import { toast } from 'sonner';
 
 interface EditProfileScreenProps {
@@ -9,21 +10,95 @@ interface EditProfileScreenProps {
 }
 
 export function EditProfileScreen({ onBack }: EditProfileScreenProps) {
-  const [name, setName] = useState('You');
-  const [bio, setBio] = useState('Music lover | Indie enthusiast | Always looking for concert buddies 🎵');
-  const [photo, setPhoto] = useState('https://images.unsplash.com/photo-1655977237812-ee6beb137203?w=400');
+  const [name, setName] = useState('');
+  const [bio, setBio] = useState('');
+  const [photo, setPhoto] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [genre, setGenre] = useState('Indie');
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    // Load user profile
+    const loadProfile = async () => {
+      try {
+        const userId = localStorage.getItem('userId');
+        if (userId) {
+          const response = await api.profile.get(userId);
+          if (response.profile) {
+            setName(response.profile.name || '');
+            setBio(response.profile.bio || '');
+            setPhoto(response.profile.avatar_url || '');
+            setGenre(response.profile.musical_genre?.split(',')[0]?.trim() || 'Indie');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image size should be less than 5MB');
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please upload a valid image file');
+        return;
+      }
+
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhoto(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      toast.success('Photo selected! Click Save to upload');
+    }
+  };
+
+  const handleDeletePhoto = () => {
+    setPhoto('');
+    setPhotoFile(null);
+    toast.success('Photo removed. Click Save to update');
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let photoUrl = photo;
+
+      // If a new photo file was selected, use it (base64 or upload to storage)
+      if (photoFile) {
+        // TODO: Implement actual upload to Supabase Storage
+        // For now, using base64 data URL
+        photoUrl = photo;
+        toast.info('Photo will be uploaded...');
+      }
+
+      // Update profile
+      await api.profile.update({
+        name,
+        bio,
+        photo: photoUrl,
+        musical_genre: genre,
+      });
+
       toast.success('Profile updated successfully! 🎉');
       setTimeout(() => onBack(), 500);
     } catch (error) {
-      toast.error('Failed to update profile');
+      console.error('Profile update error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to update profile');
     } finally {
       setSaving(false);
     }
@@ -62,21 +137,37 @@ export function EditProfileScreen({ onBack }: EditProfileScreenProps) {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="bg-white/15 backdrop-blur-2xl rounded-3xl p-6 border border-white/30 shadow-2xl">
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+
             <div className="relative w-32 h-32 mx-auto mb-4">
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-white/40 rounded-full blur-xl" />
               
               {/* Photo Container */}
               <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white/30 shadow-2xl">
-                <ImageWithFallback
-                  src={photo}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
+                {photo ? (
+                  <ImageWithFallback
+                    src={photo}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-white/20 flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-white/50" />
+                  </div>
+                )}
               </div>
 
               {/* Camera Button */}
               <motion.button
+                onClick={() => fileInputRef.current?.click()}
                 className="absolute bottom-0 right-0 w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-xl border-3 border-[#FF1744]"
                 whileTap={{ scale: 0.9 }}
                 whileHover={{ scale: 1.1, rotate: 15 }}
@@ -85,13 +176,16 @@ export function EditProfileScreen({ onBack }: EditProfileScreenProps) {
               </motion.button>
 
               {/* Delete Button */}
-              <motion.button
-                className="absolute top-0 right-0 w-9 h-9 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-xl border-2 border-white"
-                whileTap={{ scale: 0.9 }}
-                whileHover={{ scale: 1.1 }}
-              >
-                <Trash2 className="w-4 h-4 text-white" />
-              </motion.button>
+              {photo && (
+                <motion.button
+                  onClick={handleDeletePhoto}
+                  className="absolute top-0 right-0 w-9 h-9 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center shadow-xl border-2 border-white"
+                  whileTap={{ scale: 0.9 }}
+                  whileHover={{ scale: 1.1 }}
+                >
+                  <Trash2 className="w-4 h-4 text-white" />
+                </motion.button>
+              )}
             </div>
             
             <p className="text-center text-sm text-white/70">
