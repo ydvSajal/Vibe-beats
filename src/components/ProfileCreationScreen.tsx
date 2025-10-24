@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Camera, Music, Sparkles, Check, Flame } from 'lucide-react';
 import { SongCard } from './SongCard';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { api } from '../utils/api';
 import { toast } from 'sonner';
+import { supabase } from '../utils/supabase/client';
 
 interface ProfileCreationScreenProps {
   onComplete: () => void;
@@ -26,40 +27,135 @@ export function ProfileCreationScreen({ onComplete }: ProfileCreationScreenProps
   const [connected, setConnected] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Indie');
   const [loading, setLoading] = useState(false);
-  const [userSongs, setUserSongs] = useState<any[]>([]);
+  const [loadingSpotify, setLoadingSpotify] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Removed auto-load Spotify on mount to prevent breaking the app
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please upload an image file');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const userId = localStorage.getItem('userId');
+      if (!userId) {
+        toast.error('User not found. Please log in again.');
+        return;
+      }
+
+      // Create unique filename
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `avatars/${fileName}`;
+
+      // Upload to Supabase Storage
+      const { error } = await supabase.storage
+        .from('profile-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        toast.error('Failed to upload image');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(filePath);
+
+      setProfilePhoto(publicUrl);
+      toast.success('Profile photo uploaded! 📸');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const handleConnectSpotify = async () => {
     try {
-      // In production, this would initiate Spotify OAuth flow
-      // For now, we'll just set connected to true
-      // Backend would handle fetching Spotify top tracks
-      setConnected(true);
-      toast.success('Connected to Spotify! 🎵');
+      setLoadingSpotify(true);
       
-      // TODO: Implement actual Spotify integration
-      // For now, require users to have tracks in their profile via backend
-      toast.info('Your Spotify tracks will be synced from your account');
+      // Lazy load Spotify module only when needed
+      const spotifyModule = await import('../utils/spotify');
+      
+      if (!import.meta.env.VITE_SPOTIFY_CLIENT_ID) {
+        toast.error('Spotify Client ID not configured. Contact admin.');
+        return;
+      }
+      
+      // Initiate Spotify OAuth flow
+      spotifyModule.initiateSpotifyAuth();
     } catch (error) {
       console.error('Spotify connection error:', error);
       toast.error('Failed to connect to Spotify. Please try again.');
-      setConnected(false);
+      setLoadingSpotify(false);
     }
   };
 
   const handleSaveProfile = async () => {
+    const userName = localStorage.getItem('userName') || 'User';
+    const userId = localStorage.getItem('userId');
+    
+    if (!userName) {
+      toast.error('User name not found. Please go through signup again.');
+      return;
+    }
+
+    if (!userId) {
+      toast.error('User ID not found. Please log in again.');
+      return;
+    }
+
     setLoading(true);
     try {
-      await api.profile.create({
-        name: 'User',
+      // Prepare profile data
+      const profileData: any = {
+        name: userName,
         photo: profilePhoto,
-        songs: userSongs,
-        category: selectedCategory,
-      });
+        musical_genre: selectedCategory,
+      };
+
+      // Add Spotify songs if connected (future enhancement)
+      // For now, we'll save without top_songs unless Spotify is connected
       
-      toast.success('Profile created! 🎉');
-      setTimeout(() => {
-        onComplete();
-      }, 500);
+      const response = await api.profile.update(profileData);
+      
+      if (response.success) {
+        // Update localStorage with profile data
+        localStorage.setItem('userPhoto', profilePhoto);
+        localStorage.setItem('userGenre', selectedCategory);
+        
+        toast.success('Profile created! 🎉');
+        setTimeout(() => {
+          onComplete();
+        }, 500);
+      } else {
+        toast.error(response.error || 'Failed to create profile');
+      }
     } catch (error) {
       console.error('Profile creation error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to create profile');
@@ -119,154 +215,114 @@ export function ProfileCreationScreen({ onComplete }: ProfileCreationScreenProps
 
           {/* Profile Photo Upload */}
           <div className="flex justify-center mb-10">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+              className="hidden"
+            />
             <motion.div
-              className="relative"
+              className="relative cursor-pointer"
               whileTap={{ scale: 0.95 }}
               whileHover={{ scale: 1.05 }}
+              onClick={handleImageClick}
             >
               <div className="w-32 h-32 rounded-full overflow-hidden bg-white/10 border-4 border-white/30 shadow-2xl backdrop-blur-xl">
-                <ImageWithFallback
-                  src={profilePhoto}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
+                {uploadingImage ? (
+                  <div className="w-full h-full flex items-center justify-center bg-[#FF1744]/20">
+                    <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <ImageWithFallback
+                    src={profilePhoto}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                )}
               </div>
-              <button className="absolute bottom-0 right-0 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-[#FF1744]">
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleImageClick();
+                }}
+                className="absolute bottom-0 right-0 w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-xl border-4 border-[#FF1744] hover:scale-110 transition-transform"
+              >
                 <Camera className="w-6 h-6 text-[#FF1744]" />
               </button>
             </motion.div>
           </div>
 
           {/* Connect Spotify */}
-          {!connected ? (
-            <motion.button
-              onClick={handleConnectSpotify}
-              className="w-full py-5 bg-white text-[#FF1744] rounded-2xl shadow-2xl mb-8 flex items-center justify-center gap-3 text-lg"
-              whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <Music className="w-6 h-6" />
-              <span>Connect Spotify</span>
-              <Sparkles className="w-5 h-5" />
-            </motion.button>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              {/* Success Badge */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/20 flex items-center gap-3 mb-8 shadow-xl"
-              >
-                <div className="w-12 h-12 bg-gradient-to-br from-[#10B981] to-[#34D399] rounded-full flex items-center justify-center shadow-lg">
-                  <Check className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1 text-left">
-                  <div className="text-white text-lg">Spotify Connected</div>
-                  <div className="text-white/70 text-sm">Your top tracks loaded</div>
-                </div>
-              </motion.div>
+          <motion.button
+            onClick={handleConnectSpotify}
+            disabled={loadingSpotify}
+            className="w-full py-5 bg-white text-[#FF1744] rounded-2xl shadow-2xl mb-8 flex items-center justify-center gap-3 text-lg disabled:opacity-50"
+            whileHover={{ scale: 1.02, boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Music className="w-6 h-6" />
+            <span>{connected ? 'Spotify Connected ✓' : 'Connect Spotify (Optional)'}</span>
+            <Sparkles className="w-5 h-5" />
+          </motion.button>
 
-              {/* Song Cards */}
-              <div className="mb-8">
-                <h3 className="text-white text-xl mb-4 flex items-center gap-2">
-                  <Music className="w-5 h-5" />
-                  Your Top Tracks
-                </h3>
-                <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-6 px-6">
-                  {userSongs.length > 0 ? userSongs.map((song, index) => (
-                    <motion.div
-                      key={song.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.1 }}
-                    >
-                      <SongCard
-                        artwork={song.artwork}
-                        title={song.title}
-                        artist={song.artist}
-                        isLocked={song.isLocked}
-                        isEditable={song.isEditable}
-                        size="medium"
-                      />
-                    </motion.div>
-                  )) : (
-                    <div className="text-white/70 text-center w-full py-8">
-                      No songs loaded. Try reconnecting to Spotify.
-                    </div>
-                  )}
-                </div>
-              </div>
+          {/* Category Selection */}
+          <div className="mb-8">
+            <h4 className="text-white text-xl mb-4 flex items-center gap-2">
+              <Flame className="w-5 h-5" />
+              Choose Your Main Genre
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              {categories.map((category, index) => (
+                <motion.button
+                  key={category.name}
+                  onClick={() => setSelectedCategory(category.name)}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={`p-4 rounded-2xl transition-all border-2 ${
+                    selectedCategory === category.name
+                      ? 'bg-white border-white shadow-2xl'
+                      : 'bg-white/10 backdrop-blur-xl border-white/20'
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <div className={`text-3xl mb-2 ${
+                    selectedCategory === category.name ? 'scale-125' : ''
+                  } transition-transform`}>
+                    {category.emoji}
+                  </div>
+                  <div className={`text-sm ${
+                    selectedCategory === category.name
+                      ? 'text-[#FF1744]'
+                      : 'text-white'
+                  }`}>
+                    {category.name}
+                  </div>
+                </motion.button>
+              ))}
+            </div>
+          </div>
 
-              <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 border border-white/20 mb-8">
-                <p className="text-sm text-white/90 text-center">
-                  🔒 First 2 songs are from your Spotify top tracks
-                  <br />
-                  ✏️ Customize the rest to match your vibe!
-                </p>
-              </div>
-
-              {/* Category Selection */}
-              <div className="mb-8">
-                <h4 className="text-white text-xl mb-4 flex items-center gap-2">
-                  <Flame className="w-5 h-5" />
-                  Choose Your Main Genre
-                </h4>
-                <div className="grid grid-cols-2 gap-3">
-                  {categories.map((category, index) => (
-                    <motion.button
-                      key={category.name}
-                      onClick={() => setSelectedCategory(category.name)}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + index * 0.05 }}
-                      className={`p-4 rounded-2xl transition-all border-2 ${
-                        selectedCategory === category.name
-                          ? 'bg-white border-white shadow-2xl'
-                          : 'bg-white/10 backdrop-blur-xl border-white/20'
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <div className={`text-3xl mb-2 ${
-                        selectedCategory === category.name ? 'scale-125' : ''
-                      } transition-transform`}>
-                        {category.emoji}
-                      </div>
-                      <div className={`text-sm ${
-                        selectedCategory === category.name
-                          ? 'text-[#FF1744]'
-                          : 'text-white'
-                      }`}>
-                        {category.name}
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Save Profile Button */}
-              <motion.button
-                onClick={handleSaveProfile}
-                disabled={loading}
-                className="w-full py-5 bg-white text-[#FF1744] rounded-2xl shadow-2xl disabled:opacity-50 text-lg flex items-center justify-center gap-3"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {loading ? (
-                  <div className="w-6 h-6 border-3 border-[#FF1744] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Check className="w-6 h-6" />
-                    <span>Complete Profile</span>
-                    <Sparkles className="w-5 h-5" />
-                  </>
-                )}
-              </motion.button>
-            </motion.div>
-          )}
+          {/* Save Profile Button */}
+          <motion.button
+            onClick={handleSaveProfile}
+            disabled={loading}
+            className="w-full py-5 bg-white text-[#FF1744] rounded-2xl shadow-2xl disabled:opacity-50 text-lg flex items-center justify-center gap-3"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            {loading ? (
+              <div className="w-6 h-6 border-3 border-[#FF1744] border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <Check className="w-6 h-6" />
+                <span>Complete Profile</span>
+                <Sparkles className="w-5 h-5" />
+              </>
+            )}
+          </motion.button>
         </motion.div>
       </div>
     </div>

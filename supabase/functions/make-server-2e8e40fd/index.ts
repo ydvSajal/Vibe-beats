@@ -78,23 +78,43 @@ app.post("/make-server-2e8e40fd/auth/entry", async (c) => {
     const supabase = getSupabaseClient();
 
     if (action === 'login') {
-      // Look up user in users table directly
+      // Send OTP for login (works for both new and existing users)
       try {
-        const { data: user, error: getUserError } = await supabase
-          .from('users')
-          .select('id, email, name')
-          .eq('email', email)
-          .single();
-
-        if (getUserError || !user) {
-          console.log('entry.login user lookup error:', getUserError);
-          return c.json({ error: 'User not found' }, 404);
+        const clientForAuth = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '', 
+          Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+        );
+        
+        // Send OTP email using signInWithOtp
+        const { data: otpData, error: otpError } = await clientForAuth.auth.signInWithOtp({ 
+          email,
+          options: {
+            shouldCreateUser: true,
+            data: {
+              name: name || email.split('@')[0], // Use email prefix as default name
+            }
+          }
+        });
+        
+        if (otpError) {
+          console.log('entry.login OTP send error:', otpError);
+          return c.json({ 
+            error: `Failed to send OTP email: ${otpError.message}`,
+            details: otpError.message
+          }, 400);
         }
 
-        return c.json({ success: true, userId: user.id, email: user.email, name: user.name });
+        console.log('OTP sent successfully for login:', email);
+
+        return c.json({ 
+          success: true, 
+          email: email,
+          message: 'OTP sent to your email. Check your inbox and enter the 6-digit code.',
+          otpSent: true
+        });
       } catch (e) {
         console.log('entry.login exception:', e);
-        return c.json({ error: 'Login lookup failed' }, 500);
+        return c.json({ error: 'Login failed', details: e instanceof Error ? e.message : 'Unknown error' }, 500);
       }
     }
 
@@ -678,6 +698,105 @@ app.get("/make-server-2e8e40fd/leaderboard", async (c) => {
   } catch (error) {
     console.log('Get leaderboard error:', error);
     return c.json({ error: 'Failed to get leaderboard' }, 500);
+  }
+});
+
+// ===== SPOTIFY ROUTES =====
+
+// Exchange Spotify authorization code for access token
+app.post("/make-server-2e8e40fd/spotify/exchange-token", async (c) => {
+  try {
+    const { code, redirect_uri } = await c.req.json();
+
+    if (!code) {
+      return c.json({ error: 'Authorization code required' }, 400);
+    }
+
+    const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
+    const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      console.log('Spotify credentials not configured');
+      return c.json({ error: 'Spotify not configured' }, 500);
+    }
+
+    // Exchange code for token
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: redirect_uri || '',
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.log('Spotify token exchange error:', error);
+      return c.json({ error: 'Failed to exchange code' }, 400);
+    }
+
+    const data = await response.json();
+    
+    return c.json({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+      expires_in: data.expires_in,
+    });
+  } catch (error) {
+    console.log('Spotify exchange error:', error);
+    return c.json({ error: 'Failed to exchange token' }, 500);
+  }
+});
+
+// Refresh Spotify access token
+app.post("/make-server-2e8e40fd/spotify/refresh-token", async (c) => {
+  try {
+    const { refresh_token } = await c.req.json();
+
+    if (!refresh_token) {
+      return c.json({ error: 'Refresh token required' }, 400);
+    }
+
+    const clientId = Deno.env.get('SPOTIFY_CLIENT_ID');
+    const clientSecret = Deno.env.get('SPOTIFY_CLIENT_SECRET');
+
+    if (!clientId || !clientSecret) {
+      return c.json({ error: 'Spotify not configured' }, 500);
+    }
+
+    const response = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${btoa(`${clientId}:${clientSecret}`)}`,
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.log('Spotify refresh error:', error);
+      return c.json({ error: 'Failed to refresh token' }, 400);
+    }
+
+    const data = await response.json();
+    
+    return c.json({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token || refresh_token,
+      expires_in: data.expires_in,
+    });
+  } catch (error) {
+    console.log('Spotify refresh error:', error);
+    return c.json({ error: 'Failed to refresh token' }, 500);
   }
 });
 
