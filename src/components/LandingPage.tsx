@@ -123,14 +123,16 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
             >
               <motion.button
                 onClick={onGetStarted}
-                className="w-full sm:w-auto group relative overflow-hidden"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                className="w-full sm:w-auto group relative"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#FF1744] to-[#F50057]" />
-                <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-                <div className="relative px-12 py-5 flex items-center justify-center gap-3">
-                  <span className="text-white text-xl">start swiping</span>
+                {/* Glowing gradient border */}
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-[#FF1744] via-[#F50057] to-[#FF1744] rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse"></div>
+                
+                {/* Button content */}
+                <div className="relative px-12 py-5 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/20 flex items-center justify-center gap-3">
+                  <span className="text-white text-xl font-semibold">start swiping</span>
                   <ArrowRight className="w-6 h-6 text-white group-hover:translate-x-1 transition-transform" />
                 </div>
               </motion.button>
@@ -390,12 +392,15 @@ export function LandingPage({ onGetStarted }: LandingPageProps) {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <motion.button
                   onClick={onGetStarted}
-                  className="w-full sm:w-auto px-12 py-5 bg-white text-[#FF1744] rounded-xl text-xl shadow-2xl flex items-center justify-center gap-3 group"
-                  whileHover={{ scale: 1.05, boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+                  className="w-full sm:w-auto group relative"
+                  whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
-                  <span>let's goooo</span>
-                  <Sparkles className="w-6 h-6 group-hover:rotate-12 transition-transform" />
+                  {/* White background with subtle shadow */}
+                  <div className="relative px-12 py-5 bg-white rounded-2xl shadow-2xl flex items-center justify-center gap-3 border-2 border-white/20">
+                    <span className="text-[#FF1744] text-xl font-bold">let's goooo</span>
+                    <Sparkles className="w-6 h-6 text-[#FF1744] group-hover:rotate-12 transition-transform" />
+                  </div>
                 </motion.button>
               </div>
               
